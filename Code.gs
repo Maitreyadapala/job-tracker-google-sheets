@@ -307,7 +307,7 @@ function run_(dry) {
                (errors.length ? 'Companies with a problem: ' + errors.join(' ; ') + '\n' : '') +
                (fresh.length ? '\nBest matches:\n' + fresh.slice(0, 10).map(function(r){ return r[COL['Match']] + '  ' + r[COL['Brand']] + ', ' + r[COL['Job title']] + ' (' + r[COL['Location']] + ')'; }).join('\n') : '') +
                (!boards.length ? '\nYour Boards tab is empty. Use Job tracker > Add a company first.' : '') +
-               (boards.length && !fresh.length ? '\nNothing fits yet. Add more companies, or make your target job titles on the Settings tab shorter (for example "marketing" and not "senior growth marketing manager").' : '');
+               (boards.length && !fresh.length && jobs.getLastRow() < 2 ? '\nNothing fits yet. Add more companies, or make your target job titles on the Settings tab shorter (for example "marketing" and not "senior growth marketing manager").' : '');
   Logger.log(report);
   if (dry) return report + '\n\nNothing was written and no email was sent.';
 
@@ -321,7 +321,7 @@ function run_(dry) {
   try { mail = syncMail_(ss); } catch (e) { mail = 'Mail not read: ' + e.message; }
   refreshBest_(ss, s);
   sendEmail_(ss, s, fresh, mail, errors);
-  return report + '\n\nThe new roles are on the Jobs tab and an email is on its way to you.';
+  return report + (fresh.length ? '\n\nThe new roles are on the Jobs tab and an email is on its way to you.' : '\n\nNo new roles since the last run. An email is on its way to you.');
 }
 
 /** The "Best for me" tab: your best untouched rows. */
