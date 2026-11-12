@@ -73,7 +73,7 @@ Open the Settings tab and type your answers in the yellow cells. The cell next t
 | Maximum years of experience asked | 1 number | 3 |
 | Languages you work in | The languages you can work in | English, Hindi |
 | Home city and country | City first, then country | Paris, France |
-| Other countries you accept | Write them the way job adverts do | UK, United Kingdom, Netherlands, Germany |
+| Other countries you accept | Write them the way job adverts do. Add big cities too, because some adverts give only the city | UK, United Kingdom, Netherlands, Germany, Berlin, Amsterdam |
 | Lowest Match to keep | 1 number. Start with 50 | 50 |
 | Shortlist size | 1 number | 30 |
 
@@ -110,7 +110,13 @@ Every morning at about 8am, with your computer off, the tracker:
 
 There is nothing to run or maintain. The only thing left for you is the job search itself: open the email, apply to the roles you like, and set their Status to Applied in the sheet. Set a role to "Not for me" to remove it from your shortlist.
 
-To see a result straight away, click Job tracker, then "Run now".
+To see a result straight away, click Job tracker, then "Run now". The roles that fit appear on the Jobs tab, best match first:
+
+![The Jobs tab after a real run](docs/jobs.png)
+
+The roles that were dropped go to the Filtered out tab, each with its reason:
+
+![The Filtered out tab](docs/filtered-out.png)
 
 ## Prefer to let Claude do the setup?
 
@@ -168,13 +174,15 @@ This is the simple version of what I use. My own tracker also reads venture capi
 
 **Is it really free?** Yes. It uses Google Sheets and Google Apps Script, which are free with a Google account.
 
-**Is my data safe?** The tracker runs inside your own Google account. Nothing is sent to me or to anyone else. It reads your mailbox only to find replies to job applications, and it adds a label called "job-tracker" to the emails it has handled. It never deletes or sends anything except the daily email to you.
+**Is my data safe?** The tracker runs inside your own Google account. Nothing is sent to me or to anyone else. It reads your mailbox only to find replies to job applications, and it adds a label called "tracker-seen" to the emails it has handled. It never deletes or sends anything except the daily email to you.
 
 **Why did Google show a warning?** Because the script is your own private copy and not an app from a store. Google shows that warning for every personal script.
 
 **A company I want is not found. Why?** The tracker reads companies whose careers page runs on Greenhouse, Lever or Ashby. Many large companies use other systems. Skip them, or ask Claude to add that system to your copy.
 
 **No roles appear. What do I do?** Add more companies, make your job titles shorter, or lower "Lowest Match to keep" to 40.
+
+**A role in a country I accept was filtered out. Why?** Its advert gave only a city, for example "Berlin". Add that city to "Other countries you accept".
 
 **Senior roles appear in my list. Why?** The tracker drops a role only when the advert states a number of years above your limit. A title with "Senior" or "Director" and no number is kept. Set those to "Not for me", or ask Claude to add a rule that skips those words.
 

@@ -22,7 +22,7 @@ var JOB_HEADERS = ['S.no', 'Date added', 'Brand', 'Parent group', 'Job title', '
                    'Fit note', 'Missing'];
 var COL = {};
 JOB_HEADERS.forEach(function(h, i){ COL[h] = i; });
-var MAIL_LABEL = 'job-tracker';
+var MAIL_LABEL = 'tracker-seen';
 var LANGUAGES = ['english', 'french', 'german', 'spanish', 'italian', 'dutch', 'portuguese', 'polish', 'swedish', 'danish',
                  'norwegian', 'finnish', 'czech', 'greek', 'turkish', 'arabic', 'hebrew', 'mandarin', 'chinese', 'japanese',
                  'korean', 'russian', 'hindi'];
@@ -340,12 +340,19 @@ var REJECT_RE = /unfortunately|regret to inform|not (be )?(moving|going|proceedi
 var INTERVIEW_RE = /invite you to (an? )?(first |video |phone )?(interview|call)|schedule (an?|your) (interview|call)|book (a|your) (slot|time|interview)/i;
 var RECEIVED_RE = /thank(s| you) for (applying|your application)|received your application|application (has been |was )?(received|submitted)/i;
 
+/** Finds the tracker's Gmail label, or makes it. Gmail treats names that differ only by case, spaces or hyphens as the same label. */
+function mailLabel_() {
+  var norm = function(n){ return String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  var found = GmailApp.getUserLabels().filter(function(l){ return norm(l.getName()) === norm(MAIL_LABEL); })[0];
+  return found || GmailApp.createLabel(MAIL_LABEL);
+}
+
 /** Reads the last 3 days of mail. A reply changes a row only when exactly 1 row of that company can take the change. */
 function syncMail_(ss) {
   var jobs = ss.getSheetByName('Jobs');
   if (jobs.getLastRow() < 2) return 'Mail: no rows yet.';
   var range = jobs.getRange(2, 1, jobs.getLastRow() - 1, JOB_HEADERS.length), rows = range.getValues();
-  var label = GmailApp.getUserLabelByName(MAIL_LABEL) || GmailApp.createLabel(MAIL_LABEL);
+  var label = mailLabel_();
   var threads = GmailApp.search('newer_than:3d -in:sent -label:' + MAIL_LABEL + ' (application OR applying OR candidature OR unfortunately OR interview)', 0, 100);
   var tz = Session.getScriptTimeZone(), day = Utilities.formatDate(new Date(), tz, 'd MMM'), changed = 0, unsure = 0;
   threads.forEach(function(th){
