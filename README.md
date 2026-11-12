@@ -4,6 +4,8 @@ A free job tracker that works by itself. Every morning it collects new roles fro
 
 ![The tracker, with example data](docs/sheet.png)
 
+The picture above uses made-up rows. The other pictures on this page are from a real test of the script in this repository.
+
 You don't need to code, and you don't need a GitHub account. You copy 1 block of text, paste it once, and click 4 menu items. It takes about 30 minutes, once.
 
 I built it for my own job search in Paris and wrote this guide so other people can use it.
@@ -48,6 +50,8 @@ Type `sheets.new` in your browser's address bar and press Enter. An empty Google
 
 A new menu called **Job tracker** now appears at the top of your sheet, next to Help. You won't need the script tab again.
 
+![The Job tracker menu](docs/menu.png)
+
 5. Click Job tracker, then "Set up this sheet". The tracker builds its tabs.
 
 The first time you click a menu item, Google asks for permission. This is normal:
@@ -59,6 +63,8 @@ The first time you click a menu item, Google asks for permission. This is normal
 ### Step 4: say what you are looking for
 
 Open the Settings tab and type your answers in the yellow cells. The cell next to each one shows an example. Separate several answers with commas.
+
+![The Settings tab, filled in](docs/settings.png)
 
 | Line | What to type | Example |
 |---|---|---|
@@ -75,11 +81,21 @@ Remote roles are always kept. The visa and contract lines are notes for you. The
 
 ### Step 5: use the Job tracker menu
 
-**1. Add a company.** Click Job tracker, then "Add a company". Type a company name, for example Duolingo, and click OK. The tracker finds that company's job page and adds it. Do this for 10 to 20 companies you would like to work for.
+**1. Add a company.** Click Job tracker, then "Add a company". Type a company name, for example Duolingo, and click OK. The tracker finds that company's job page and tells you how many roles are open. It then asks what kind of company it is: type 1 or 2 words, for example Education, and click OK. Do this for 10 to 20 companies you would like to work for.
+
+![Adding a company](docs/add-company.png)
+
+Each company you add appears on the Boards tab:
+
+![The Boards tab](docs/boards.png)
 
 If the tracker says it found nothing for a company, check the spelling. Some companies use a job system the tracker can't read. Skip those.
 
-**2. Test run.** Click Job tracker, then "Test run". After a moment a box shows how many roles it read and the best matches. Nothing is changed and no email is sent. If nothing fits, add more companies or make your job titles shorter ("marketing", not "senior growth marketing manager").
+**2. Test run.** Click Job tracker, then "Test run". After a moment a box shows how many roles it read and the best matches. Nothing is changed and no email is sent.
+
+![The result of a test run](docs/test-run.png)
+
+If nothing fits, add more companies or make your job titles shorter ("marketing", not "senior growth marketing manager").
 
 **3. Turn on the daily run.** Click Job tracker, then "Turn on the daily run". That's it. You can close the sheet.
 
@@ -160,6 +176,8 @@ This is the simple version of what I use. My own tracker also reads venture capi
 
 **No roles appear. What do I do?** Add more companies, make your job titles shorter, or lower "Lowest Match to keep" to 40.
 
+**Senior roles appear in my list. Why?** The tracker drops a role only when the advert states a number of years above your limit. A title with "Senior" or "Director" and no number is kept. Set those to "Not for me", or ask Claude to add a rule that skips those words.
+
 **How do I stop it?** Click Job tracker, then "Turn off the daily run".
 
 **Can I change how it works?** Yes. The whole script is in `Code.gs`. If you don't code, give that file to Claude and say what you want changed.
@@ -172,6 +190,7 @@ This is the simple version of what I use. My own tracker also reads venture capi
 | `job-tracker-example.xlsx` | An example of a filled tracker, with made-up rows. Only to look at: you don't need it for the setup |
 | `Code.gs` | The script you paste once |
 | `LICENSE` | The MIT licence |
+| `docs/` | The images on this page |
 
 ## Help make it better
 
