@@ -73,7 +73,7 @@ Open the Settings tab and type your answers in the yellow cells. The cell next t
 | Maximum years of experience asked | 1 number | 3 |
 | Languages you work in | The languages you can work in | English, Hindi |
 | Home city and country | City first, then country | Paris, France |
-| Other countries you accept | Write them the way job adverts do. Add big cities too, because some adverts give only the city | UK, United Kingdom, Netherlands, Germany, Berlin, Amsterdam |
+| Other countries you accept | Country names. The tracker knows the big cities of about 25 countries, so "Germany" also covers an advert that only says "Berlin" | UK, Netherlands, Germany |
 | Lowest Match to keep | 1 number. Start with 50 | 50 |
 | Shortlist size | 1 number | 30 |
 
@@ -154,8 +154,9 @@ Anything below "Lowest Match to keep" on the Settings tab goes to Filtered out w
 
 ## Why a role is filtered out
 
+- **Senior title.** The title says Senior, Principal, Director, Head of or VP, and your maximum is 4 years or less.
 - **Too many years.** The advert asks for more experience than your limit. A range counts at its lower end ("2 to 4 years" counts as 2).
-- **Language.** The advert clearly requires a language you didn't list ("fluent French required"). A language called "a plus" is fine, and "the French market" is a place, not a language.
+- **Language.** The advert clearly requires a language you didn't list ("fluent French required"). A language called "a plus" is fine, and "the French market" is a place, not a language. If you leave the languages line empty, this check is off.
 - **Place.** The role is in a country you didn't list and is not remote.
 - **Low match.** The score is under your limit.
 
@@ -182,9 +183,11 @@ This is the simple version of what I use. My own tracker also reads venture capi
 
 **No roles appear. What do I do?** Add more companies, make your job titles shorter, or lower "Lowest Match to keep" to 40.
 
-**A role in a country I accept was filtered out. Why?** Its advert gave only a city, for example "Berlin". Add that city to "Other countries you accept".
+**A role in a country I accept was filtered out. Why?** Its advert gave only a small city the tracker doesn't know. Add that city to "Other countries you accept".
 
-**Senior roles appear in my list. Why?** The tracker drops a role only when the advert states a number of years above your limit. A title with "Senior" or "Director" and no number is kept. Set those to "Not for me", or ask Claude to add a rule that skips those words.
+**Why are senior roles filtered out?** If your maximum is 4 years or less, titles with Senior, Principal, Director, Head of or VP are dropped, with the reason "senior title". To keep them, raise your maximum years, or put the word in your target job titles (for example "marketing director").
+
+**I changed my settings. Do filtered roles come back?** No, a filtered role stays out. To give roles a second chance, delete their rows on the Filtered out tab. They are checked again at the next run.
 
 **How do I stop it?** Click Job tracker, then "Turn off the daily run".
 
