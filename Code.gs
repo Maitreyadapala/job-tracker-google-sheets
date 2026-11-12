@@ -29,9 +29,12 @@ var LANGUAGES = ['english', 'french', 'german', 'spanish', 'italian', 'dutch', '
 
 function dryRun() { run_(true); }
 function dailyRun() { run_(false); }
+function tz_() {
+  try { return SpreadsheetApp.getActive().getSpreadsheetTimeZone() || Session.getScriptTimeZone(); } catch (e) { return Session.getScriptTimeZone(); }
+}
 function setupDailyTrigger() {
   ScriptApp.getProjectTriggers().forEach(function(t){ if (t.getHandlerFunction() === 'dailyRun') ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('dailyRun').timeBased().atHour(8).everyDays(1).create();
+  ScriptApp.newTrigger('dailyRun').timeBased().atHour(8).everyDays(1).inTimezone(tz_()).create();
   Logger.log('Done: dailyRun now starts by itself every day at about 8am.');
 }
 
@@ -92,7 +95,7 @@ function menuSetup() {
   var rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['New', 'Interested', 'Applied', 'Interview', 'Offer', 'Accepted', 'Rejected', 'Not for me', 'Link expired'], true)
     .setAllowInvalid(true).build();
-  jobs.getRange(2, COL['Status'] + 1, 2000, 1).setDataValidation(rule);
+  jobs.getRange(2, COL['Status'] + 1, Math.max(1, jobs.getMaxRows() - 1), 1).setDataValidation(rule);
   var first = ss.getSheetByName('Sheet1');
   if (first && first.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(first);
   ss.setActiveSheet(st);
@@ -115,6 +118,10 @@ function menuAddCompany() {
   if (a.getSelectedButton() !== ui.Button.OK) return;
   var name = String(a.getResponseText() || '').trim();
   if (!name) return;
+  var tab = SpreadsheetApp.getActive().getSheetByName('Boards');
+  if (!tab) { ui.alert('This sheet is not set up yet. Click Job tracker > Set up this sheet first.'); return; }
+  var have = tab.getLastRow() > 1 ? tab.getRange(2, 1, tab.getLastRow() - 1, 1).getValues().map(function(x){ return String(x[0]).toLowerCase().trim(); }) : [];
+  if (have.indexOf(name.toLowerCase()) >= 0) { ui.alert(name + ' is already on your Boards tab.'); return; }
   var hit = findBoard_(name);
   if (!hit) {
     ui.alert('No open job feed found for "' + name + '".\n\nThis tracker reads companies that use Greenhouse, Lever or Ashby for their careers page. Check the spelling, or try the name without spaces. If it still fails, the company uses another system.');
@@ -122,8 +129,7 @@ function menuAddCompany() {
   }
   var c = ui.prompt('Found ' + name + ' (' + hit.n + ' open roles)', 'What kind of company is it? One or two words, for example: Dating, Events, Consumer app, Fintech', ui.ButtonSet.OK_CANCEL);
   var cat = c.getSelectedButton() === ui.Button.OK ? String(c.getResponseText() || '').trim() : '';
-  var tab = SpreadsheetApp.getActive().getSheetByName('Boards');
-  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   tab.getRange(tab.getLastRow() + 1, 1, 1, 7).setValues([[name, cat || 'Company', hit.system, hit.id, hit.n, today, 'yes']]);
   ui.alert(name + ' was added to the Boards tab.');
 }
@@ -201,9 +207,16 @@ function titleFit_(title, titles) {
     if (!w) return;
     if (t.indexOf(' ' + w + ' ') >= 0) { best = Math.max(best, 35); return; }
     var words = w.split(' ');
-    if (words.every(function(x){ return t.indexOf(' ' + x) >= 0; })) best = Math.max(best, 25);
+    if (words.every(function(x){ return t.indexOf(' ' + (x.length > 3 ? x.replace(/s$/, '') : x)) >= 0; })) best = Math.max(best, 25);
   });
   return best;
+}
+/** True when the title names a senior level and your limit on years is low. Skipped when you asked for that level yourself. */
+function tooSenior_(title, s) {
+  if (s.maxYears > 4) return false;
+  var m = String(title || '').toLowerCase().match(/\b(senior|sr|principal|director|head of|vp|vice president)\b/);
+  if (!m) return false;
+  return s.titles.join(' ').indexOf(m[1]) < 0;
 }
 /** Years of experience asked for: the lower end of the first figure found, or null. */
 function yearsFrom_(text) {
@@ -212,6 +225,7 @@ function yearsFrom_(text) {
 }
 /** A language the advert clearly requires and you did not list, or ''. "A plus" does not count. */
 function languageNeeded_(text, mine) {
+  if (!mine.length) return '';
   var sentences = String(text || '').toLowerCase().split(/[.!?;\n•]+/);
   var hard = /fluent|fluency|native|bilingual|proficien|mandatory|required|essential|a must|speaker|speaking|courant|maitrise|maîtrise|obligatoire/;
   var soft = /\bplus\b|bonus|nice to have|advantage|asset|preferred|desirable|not required|optional|ideally|atout/;
@@ -233,13 +247,65 @@ function languageNeeded_(text, mine) {
   }
   return '';
 }
+var CITY_COUNTRY = {
+  'united kingdom uk': ['london', 'manchester', 'edinburgh', 'bristol', 'leeds', 'birmingham', 'glasgow', 'cardiff', 'cambridge', 'oxford', 'belfast', 'england', 'scotland', 'wales'],
+  'france': ['paris', 'lyon', 'marseille', 'bordeaux', 'lille', 'nantes', 'toulouse'],
+  'germany': ['berlin', 'munich', 'hamburg', 'cologne', 'frankfurt', 'stuttgart', 'dusseldorf'],
+  'netherlands': ['amsterdam', 'rotterdam', 'utrecht', 'the hague', 'eindhoven'],
+  'ireland': ['dublin', 'cork', 'galway'],
+  'spain': ['madrid', 'barcelona', 'valencia', 'malaga'],
+  'portugal': ['lisbon', 'porto'],
+  'italy': ['milan', 'rome', 'turin'],
+  'belgium': ['brussels', 'antwerp', 'ghent'],
+  'switzerland': ['zurich', 'geneva', 'lausanne', 'basel'],
+  'austria': ['vienna'],
+  'sweden': ['stockholm', 'gothenburg', 'malmo'],
+  'denmark': ['copenhagen', 'aarhus'],
+  'norway': ['oslo'],
+  'finland': ['helsinki'],
+  'poland': ['warsaw', 'krakow', 'wroclaw'],
+  'czech republic czechia': ['prague', 'brno'],
+  'united states usa us': ['new york', 'san francisco', 'los angeles', 'seattle', 'boston', 'austin', 'chicago', 'denver', 'atlanta', 'miami', 'washington', 'pittsburgh', 'san diego', 'portland', 'philadelphia', 'dallas', 'houston'],
+  'canada': ['toronto', 'vancouver', 'montreal', 'ottawa', 'calgary'],
+  'australia': ['sydney', 'melbourne', 'brisbane', 'perth'],
+  'india': ['bangalore', 'bengaluru', 'mumbai', 'delhi', 'gurgaon', 'gurugram', 'noida', 'hyderabad', 'pune', 'chennai'],
+  'singapore': ['singapore'],
+  'japan': ['tokyo', 'osaka'],
+  'united arab emirates uae': ['dubai', 'abu dhabi'],
+  'israel': ['tel aviv'],
+  'brazil': ['sao paulo', 'rio de janeiro'],
+  'mexico': ['mexico city', 'guadalajara']
+};
+var US_STATE = /,\s*(al|ak|az|ar|ca|co|ct|dc|de|fl|ga|hi|ia|id|il|in|ks|ky|la|ma|md|me|mi|mn|mo|ms|mt|nc|nd|ne|nh|nj|nm|nv|ny|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|va|vt|wa|wi|wv|wy)\b/;
+/** A location with its country spelled out: "Berlin" becomes "berlin germany", "London, England" also gets "united kingdom uk". */
+function fullPlace_(location) {
+  var l = ' ' + String(location || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9,]+/g, ' ') + ' ';
+  var add = '';
+  Object.keys(CITY_COUNTRY).forEach(function(country){
+    var names = CITY_COUNTRY[country].concat(country.split(' ').length > 1 ? [] : [country]);
+    if (country === 'united kingdom uk') names = names.concat(['united kingdom', 'uk', 'u k', 'great britain']);
+    if (country === 'united states usa us') names = names.concat(['united states', 'usa', 'us', 'u s']);
+    if (country === 'united arab emirates uae') names = names.concat(['united arab emirates', 'uae']);
+    if (country === 'czech republic czechia') names = names.concat(['czech republic', 'czechia']);
+    if (names.some(function(n){ return hasWord_(l, n); })) add += ' ' + country;
+  });
+  if (US_STATE.test(l) && add.indexOf('united states') < 0) add += ' united states usa us';
+  return l + add + ' ';
+}
+/** True when the place is in the text as whole words, so "uk" does not match "ukraine". */
+function hasWord_(text, place) {
+  var p = String(place || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  if (!p) return false;
+  return new RegExp('(^|[^a-z0-9])' + p + '([^a-z0-9]|$)').test(text);
+}
 /** 10 for your home city, 7 for your home country, 5 for another place you accept or remote, -1 for anywhere else. */
 function placePoints_(location, s) {
-  var l = String(location || '').toLowerCase();
-  if (s.home.length && l.indexOf(s.home[0]) >= 0) return 10;
-  if (s.home.slice(1).some(function(h){ return l.indexOf(h) >= 0; })) return 7;
-  if (s.places.some(function(p){ return l.indexOf(p) >= 0; }) || /remote|anywhere/.test(l)) return 5;
-  return l ? -1 : 3;
+  if (!String(location || '').trim()) return 3;
+  var l = fullPlace_(location);
+  if (s.home.length && hasWord_(l, s.home[0])) return 10;
+  if (s.home.slice(1).some(function(h){ return hasWord_(l, h); })) return 7;
+  if (s.places.some(function(p){ return hasWord_(l, p); }) || /remote|anywhere/.test(l)) return 5;
+  return -1;
 }
 function score_(j, b, s, years) {
   var why = [];
@@ -270,7 +336,7 @@ function run_(dry) {
   var s = settings_(ss);
   if (!s.titles.length) return 'Your Settings tab is empty. Type your target job titles in the first yellow cell, then try again.';
   var jobs = ss.getSheetByName('Jobs'), out = ss.getSheetByName('Filtered out'), boardsTab = ss.getSheetByName('Boards');
-  var tz = Session.getScriptTimeZone(), today = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
+  var tz = tz_(), today = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
   var seen = {};
   if (jobs.getLastRow() > 1) jobs.getRange(2, COL['Link'] + 1, jobs.getLastRow() - 1, 1).getValues().forEach(function(r){ if (r[0]) seen[String(r[0])] = 1; });
   if (out.getLastRow() > 1) out.getRange(2, 1, out.getLastRow() - 1, 1).getValues().forEach(function(r){ if (r[0]) seen[String(r[0])] = 1; });
@@ -288,6 +354,7 @@ function run_(dry) {
       seen[j.url] = 1;
       if (!titleFit_(j.title, s.titles)) return;                       // not your kind of role: not even recorded
       var years = yearsFrom_(j.text);
+      if (tooSenior_(j.title, s)) { dropped.push([j.url, 'senior title: ' + j.title, today]); return; }
       if (placePoints_(j.location, s) < 0) { dropped.push([j.url, 'place: ' + j.location, today]); return; }
       if (years !== null && years > s.maxYears) { dropped.push([j.url, 'years:' + years, today]); return; }
       var lang = languageNeeded_(j.title + '. ' + j.text, s.languages);
@@ -315,6 +382,10 @@ function run_(dry) {
     var start = jobs.getLastRow();
     fresh.forEach(function(r, i){ r[COL['S.no']] = start + i; });
     jobs.getRange(start + 1, 1, fresh.length, JOB_HEADERS.length).setValues(fresh);
+    var n = jobs.getLastRow() - 1;
+    jobs.getRange(2, 1, n, JOB_HEADERS.length).sort({ column: COL['Match'] + 1, ascending: false });
+    var nums = []; for (var i = 1; i <= n; i++) nums.push([i]);
+    jobs.getRange(2, 1, n, 1).setValues(nums);
   }
   if (dropped.length) out.getRange(out.getLastRow() + 1, 1, dropped.length, 3).setValues(dropped);
   var mail = '';
@@ -354,7 +425,7 @@ function syncMail_(ss) {
   var range = jobs.getRange(2, 1, jobs.getLastRow() - 1, JOB_HEADERS.length), rows = range.getValues();
   var label = mailLabel_();
   var threads = GmailApp.search('newer_than:3d -in:sent -label:' + MAIL_LABEL + ' (application OR applying OR candidature OR unfortunately OR interview)', 0, 100);
-  var tz = Session.getScriptTimeZone(), day = Utilities.formatDate(new Date(), tz, 'd MMM'), changed = 0, unsure = 0;
+  var tz = tz_(), day = Utilities.formatDate(new Date(), tz, 'd MMM'), changed = 0, unsure = 0;
   threads.forEach(function(th){
     var msgs = th.getMessages(), m = msgs[msgs.length - 1];
     var head = m.getFrom() + ' ' + m.getSubject(), text = (head + ' ' + m.getPlainBody().slice(0, 2500)).replace(/\s+/g, ' ');
@@ -369,6 +440,11 @@ function syncMail_(ss) {
       var named = new RegExp('(^|[^A-Za-z0-9])' + brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^A-Za-z0-9]|$)').test(head);
       if (named && allowed.indexOf(String(r[COL['Status']]).trim()) >= 0) hits.push(i);
     });
+    if (hits.length > 1) {
+      var low = text.toLowerCase();
+      var byTitle = hits.filter(function(i){ var t = String(rows[i][COL['Job title']]).toLowerCase().trim(); return t.length > 5 && low.indexOf(t) >= 0; });
+      if (byTitle.length === 1) hits = byTitle;
+    }
     if (hits.length === 1) {
       var r = rows[hits[0]];
       r[COL['Status']] = kind;
